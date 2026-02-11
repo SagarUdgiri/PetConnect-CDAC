@@ -1,0 +1,25 @@
+package com.petconnect.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginResponse {
+    private boolean otpSent;
+    private LocalDateTime otpExpiry;
+    private String message;
+    private String token;
+    private Long userId;
+    private String fullName;
+    private String username;
+    private String email;
+    private String role;
+    private String imageUrl;
+    private String bio;
+}

@@ -1,0 +1,118 @@
+/* src/features/auth/auth.css */
+
+.auth-page-wrapper {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-main);
+  padding: 40px 20px;
+}
+
+.auth-glass-card {
+  background: white;
+  border: 1px solid var(--p-slate-200);
+  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  transition: var(--transition-smooth);
+}
+
+.auth-form-container {
+  padding: 60px;
+  flex: 1;
+  background: white;
+}
+
+@media (max-width: 768px) {
+  .auth-form-container {
+    padding: 30px;
+  }
+}
+
+.auth-image-side {
+  flex: 1;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .auth-image-side {
+    display: block;
+  }
+}
+
+.auth-image-overlay {
+  position: absolute;
+  bottom: 40px;
+  left: 40px;
+  right: 40px;
+  padding: 32px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: white;
+}
+
+/* Form Styling Consistency */
+.form-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--p-slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.form-control {
+  border: 2px solid var(--p-slate-200);
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  background-color: var(--p-slate-50);
+  color: var(--p-slate-900);
+  transition: var(--transition-fast);
+}
+
+.form-control:focus {
+  border-color: var(--brand-primary);
+  background-color: white;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+.auth-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--p-slate-900);
+  margin-bottom: 12px;
+  letter-spacing: -0.03em;
+}
+
+.auth-subtitle {
+  color: var(--p-slate-500);
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 48px;
+}
+
+.letter-spacing-1 {
+  letter-spacing: 0.1em;
+}
+
+/* OTP Placeholder styling */
+.otp-input::placeholder {
+  color: #94a3b8 !important;
+  /* Slate 400 / Grey */
+  font-size: 0.85rem !important;
+  letter-spacing: normal !important;
+  font-weight: 500 !important;
+}

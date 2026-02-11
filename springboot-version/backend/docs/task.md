@@ -1,0 +1,25 @@
+# Migration: PetConnectAlmost (.NET) to PetConnect (Spring Boot)
+
+- [x] Establish package structure
+    - [x] Create `controller` package
+    - [x] Create `entity` package
+    - [x] Create `dto` package
+    - [x] Create `repository` package
+    - [x] Create `service` package
+    - [x] Create `config` package
+    - [x] Create `security` package
+    - [x] Create `exception` package
+- [x] Create empty placeholder files
+    - [x] Create Core Entities (User, Pet, Post, etc.)
+    - [x] Create DTOs (LoginRequest, RegisterRequest, etc.)
+    - [x] Create Repositories (UserRepository, etc.)
+    - [x] Create Services (UserService, etc.)
+    - [x] Create Controllers (AuthController, etc.)
+- [x] Finalize structure and get user feedback
+- [x] Implement Spring Security with JWT
+    - [x] Add JWT dependencies to `pom.xml`
+    - [x] Create `JwtUtils` for token generation and validation
+    - [x] Create `JwtAuthenticationFilter`
+    - [x] Configure `SecurityConfig` (SecurityFilterChain, PasswordEncoder, AuthenticationManager)
+    - [x] Implement `UserDetailsServiceImpl` and `UserDetailsImpl`
+    - [x] Update `AuthController` with Login logic

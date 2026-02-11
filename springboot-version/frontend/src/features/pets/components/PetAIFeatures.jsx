@@ -1,0 +1,603 @@
+import React, { useState } from 'react';
+import { Card, Button, Form, Spinner, Alert, Badge, Row, Col } from 'react-bootstrap';
+import { FaBrain, FaUpload, FaUtensils, FaExclamationTriangle, FaCheckCircle, FaInfoCircle, FaShoppingCart } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import aiService from '../../../services/aiService';
+import toast from 'react-hot-toast';
+
+const PetAIFeatures = () => {
+  const navigate = useNavigate();
+  
+  // Health Advisor State
+  const [healthImage, setHealthImage] = useState(null);
+  const [healthImagePreview, setHealthImagePreview] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthResult, setHealthResult] = useState(null);
+
+  // Diet Planner State
+  const [dietLoading, setDietLoading] = useState(false);
+  const [dietResult, setDietResult] = useState(null);
+  const [dietFormData, setDietFormData] = useState({
+    petName: '',
+    petType: 'Dog',
+    breed: '',
+    ageYears: 1,
+    weightKg: 10,
+    activityLevel: 'medium',
+    goal: 'maintenance'
+  });
+
+  // Health Advisor Handlers
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setHealthImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setHealthImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleHealthAnalysis = async (e) => {
+    e.preventDefault();
+    if (!healthImage) {
+      toast.error('Please upload a pet image first');
+      return;
+    }
+
+    try {
+      setHealthLoading(true);
+      const response = await aiService.getPetAdvice(healthImage);
+      
+      // Parse JSON response if it's a string
+      const result = typeof response === 'string' ? JSON.parse(response) : response;
+      setHealthResult(result);
+      toast.success('AI analysis complete!');
+    } catch (error) {
+      console.error('Health analysis error:', error);
+      toast.error('Failed to analyze image. Please try again.');
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  const getUrgencyColor = (level) => {
+    switch (level?.toLowerCase()) {
+      case 'high': return 'danger';
+      case 'medium': return 'warning';
+      case 'low': return 'success';
+      default: return 'secondary';
+    }
+  };
+
+  // Diet Planner Handlers
+  const handleDietFormChange = (e) => {
+    const { name, value } = e.target;
+    setDietFormData(prev => ({
+      ...prev,
+      [name]: name === 'ageYears' || name === 'weightKg' ? parseFloat(value) : value
+    }));
+  };
+
+  const handleDietAnalysis = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setDietLoading(true);
+      const response = await aiService.getDietAndProducts(dietFormData);
+      
+      // Parse JSON response if it's a string
+      const result = typeof response === 'string' ? JSON.parse(response) : response;
+      setDietResult(result);
+      toast.success('Diet plan generated!');
+    } catch (error) {
+      console.error('Diet analysis error:', error);
+      toast.error('Failed to generate diet plan. Please try again.');
+    } finally {
+      setDietLoading(false);
+    }
+  };
+
+  const handleProductClick = (productId) => {
+    navigate('/petshop');
+    toast.success('Redirecting to shop...');
+  };
+
+  return (
+    <div className="container py-5 animate-fadeIn">
+      <div className="text-center mb-5 mt-3">
+        <h2 className="fw-900 text-slate-900 mb-2 display-6">Supercharge Pet Care with AI</h2>
+        <p className="text-slate-500 fw-600 mx-auto" style={{ maxWidth: '600px' }}>
+          Harness the power of expert AI to monitor your pet's health and optimize their nutrition routine.
+        </p>
+      </div>
+
+      <Row className="g-5">
+        {/* AI Health Advisor */}
+        <Col lg={6}>
+          <Card className="border-0 shadow-premium h-100 overflow-hidden" style={{ borderRadius: '32px', backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(20px)' }}>
+            <div className="p-1 bg-gradient-brand-subtle" style={{ height: '6px' }}></div>
+            <Card.Body className="p-4 p-xl-5">
+              <div className="d-flex align-items-center mb-5">
+                <div className="rounded-circle d-flex align-items-center justify-content-center me-4 shadow-sm" style={{ 
+                  width: '60px', 
+                  height: '60px', 
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                  color: 'white'
+                }}>
+                  <FaBrain size={28} />
+                </div>
+                <div>
+                  <h3 className="fw-900 text-slate-900 mb-1" style={{ fontSize: '1.5rem' }}>AI Health Advisor</h3>
+                  <div className="badge rounded-pill bg-primary bg-opacity-10 text-primary fw-800 px-3 py-1" style={{ fontSize: '0.7rem' }}>INSTANT INSIGHTS</div>
+                </div>
+              </div>
+
+              <Form onSubmit={handleHealthAnalysis}>
+                <Form.Group className="mb-4">
+                  <div 
+                    className="upload-zone position-relative overflow-hidden group"
+                    style={{ 
+                      height: '280px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '24px',
+                      border: '2px dashed #e2e8f0',
+                      backgroundColor: '#f8fafc',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => document.getElementById('health-image-input').click()}
+                  >
+                    {healthImagePreview ? (
+                      <div className="w-100 h-100 p-2 position-relative">
+                        <img 
+                          src={healthImagePreview} 
+                          alt="Preview" 
+                          className="w-100 h-100 rounded-4"
+                          style={{ objectFit: 'cover' }}
+                        />
+                        <div className="position-absolute top-50 start-50 translate-middle upload-overlay opacity-0 group-hover-opacity-100 transition-smooth">
+                           <div className="bg-white bg-opacity-90 p-3 rounded-circle shadow-lg text-primary">
+                             <FaUpload size={24} />
+                           </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center group-hover-translate-up transition-smooth">
+                        <div className="bg-white shadow-sm p-4 rounded-circle d-inline-flex mb-3 text-slate-400 group-hover-primary border">
+                          <FaUpload size={32} />
+                        </div>
+                        <p className="text-slate-900 fw-800 mb-1">Click to upload pet photo</p>
+                        <p className="text-slate-400 small fw-600">Supports PNG, JPG, JPEG</p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      id="health-image-input"
+                      className="d-none"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                    />
+                  </div>
+                </Form.Group>
+
+                <Button
+                  type="submit"
+                  className="w-100 py-3 rounded-pill fw-900 shadow-lg btn-gradient-primary border-0 scale-hover"
+                  style={{ fontSize: '1rem', letterSpacing: '0.5px' }}
+                  disabled={healthLoading || !healthImage}
+                >
+                  {healthLoading ? (
+                    <div className="d-flex align-items-center justify-content-center">
+                      <Spinner animation="grow" size="sm" className="me-2" />
+                      <span className="text-uppercase small tracking-widest">Processing Intelligence...</span>
+                    </div>
+                  ) : (
+                    <>ANALYZE HEALTH STATUS</>
+                  )}
+                </Button>
+              </Form>
+
+              {/* Health Results */}
+              {healthResult && (
+                <div className="mt-5 animate-slideUp">
+                  <div className="p-4 rounded-5 border-0 shadow-sm" style={{ backgroundColor: '#ffffff' }}>
+                    <div className="d-flex align-items-center justify-content-between mb-4">
+                       <h5 className="fw-900 text-slate-900 mb-0">Analysis Result</h5>
+                       <Badge bg={getUrgencyColor(healthResult.urgency_level)} className="px-3 py-2 rounded-pill uppercase tracking-wider" style={{ fontSize: '0.65rem' }}>
+                         {healthResult.urgency_level || 'Normal'} priority
+                       </Badge>
+                    </div>
+
+                    <div className="space-y-4">
+                      {healthResult.visible_condition && (
+                        <div className="mb-4">
+                          <label className="uppercase fw-800 text-slate-400 mb-2 d-block" style={{ fontSize: '0.65rem' }}>Condition Detected</label>
+                          <div className="p-3 bg-slate-50 rounded-4 fw-700 text-slate-700 border-start border-4 border-primary">
+                            {healthResult.visible_condition}
+                          </div>
+                        </div>
+                      )}
+
+                      <Row className="g-3">
+                        <Col md={12}>
+                           <div className="p-3 rounded-4 bg-slate-50 h-100">
+                             <label className="uppercase fw-800 text-slate-400 mb-2 d-block" style={{ fontSize: '0.65rem' }}>Observations</label>
+                             <div className="small fw-600 text-slate-600">
+                                {healthResult.possible_health_observations?.map((o, i) => (
+                                  <div key={i} className="mb-1 d-flex align-items-start gap-2">
+                                    <div className="bg-primary rounded-circle mt-1" style={{ width: '6px', height: '6px', flexShrink: 0 }}></div>
+                                    {o}
+                                  </div>
+                                ))}
+                             </div>
+                           </div>
+                        </Col>
+                        <Col md={12}>
+                           <div className="p-3 rounded-4 bg-slate-50 bg-opacity-5 h-100 border border-success border-opacity-10">
+                             <label className="uppercase fw-800 text-success mb-2 d-block opacity-75" style={{ fontSize: '0.65rem' }}>Care Advisory</label>
+                             <div className="small fw-700 text-slate-700">
+                                {healthResult.care_advice?.map((a, i) => (
+                                  <div key={i} className="mb-1 d-flex align-items-center gap-2 text-success">
+                                    <FaCheckCircle size={12} className="opacity-50" />
+                                    {a}
+                                  </div>
+                                ))}
+                             </div>
+                           </div>
+                        </Col>
+                      </Row>
+                    </div>
+
+                    {healthResult.disclaimer && (
+                      <div className="mt-4 p-3 bg-warning bg-opacity-10 rounded-4 border-dashed border-warning d-flex align-items-start gap-3">
+                         <FaExclamationTriangle className="text-warning mt-1" size={16} />
+                         <p className="small mb-0 text-warning-emphasis fw-600" style={{ fontSize: '0.75rem' }}>{healthResult.disclaimer}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+
+        {/* AI Diet Planner */}
+        <Col lg={6}>
+          <Card className="border-0 shadow-premium h-100 overflow-hidden" style={{ borderRadius: '32px', backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(20px)' }}>
+            <div className="p-1 bg-gradient-success-subtle" style={{ height: '6px' }}></div>
+            <Card.Body className="p-4 p-xl-5">
+              <div className="d-flex align-items-center mb-5">
+                <div className="rounded-circle d-flex align-items-center justify-content-center me-4 shadow-sm" style={{ 
+                  width: '60px', 
+                  height: '60px', 
+                  background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                  color: 'white'
+                }}>
+                  <FaUtensils size={28} />
+                </div>
+                <div>
+                  <h3 className="fw-900 text-slate-900 mb-1" style={{ fontSize: '1.5rem' }}>AI Diet Planner</h3>
+                  <div className="badge rounded-pill bg-success bg-opacity-10 text-success fw-800 px-3 py-1" style={{ fontSize: '0.7rem' }}>PRECISION NUTRITION</div>
+                </div>
+              </div>
+
+              <Form onSubmit={handleDietAnalysis}>
+                 <div className="p-4 rounded-5 border bg-slate-50 bg-opacity-50 mb-4">
+                    <Row className="g-3">
+                      <Col md={12}>
+                        <Form.Group>
+                          <Form.Label className="uppercase fw-800 text-slate-400 mb-2" style={{ fontSize: '0.65rem' }}>Pet Name</Form.Label>
+                          <Form.Control
+                            type="text"
+                            name="petName"
+                            value={dietFormData.petName}
+                            onChange={handleDietFormChange}
+                            placeholder="e.g. Buddy"
+                            className="form-control-premium rounded-4 border-0 shadow-sm fw-700"
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="uppercase fw-800 text-slate-400 mb-2" style={{ fontSize: '0.65rem' }}>Species</Form.Label>
+                          <Form.Select
+                            name="petType"
+                            value={dietFormData.petType}
+                            onChange={handleDietFormChange}
+                            className="form-control-premium rounded-4 border-0 shadow-sm fw-700"
+                          >
+                            <option value="Dog">Dog</option>
+                            <option value="Cat">Cat</option>
+                            <option value="Bird">Bird</option>
+                            <option value="Rabbit">Rabbit</option>
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="uppercase fw-800 text-slate-400 mb-2" style={{ fontSize: '0.65rem' }}>Breed Name</Form.Label>
+                          <Form.Control
+                            type="text"
+                            name="breed"
+                            value={dietFormData.breed}
+                            onChange={handleDietFormChange}
+                            placeholder="e.g. Beagle"
+                            className="form-control-premium rounded-4 border-0 shadow-sm fw-700"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="uppercase fw-800 text-slate-400 mb-2" style={{ fontSize: '0.65rem' }}>Age (Years)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            name="ageYears"
+                            value={dietFormData.ageYears}
+                            onChange={handleDietFormChange}
+                            className="form-control-premium rounded-4 border-0 shadow-sm fw-700"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="uppercase fw-800 text-slate-400 mb-2" style={{ fontSize: '0.65rem' }}>Weight (KG)</Form.Label>
+                          <Form.Control
+                            type="number"
+                            name="weightKg"
+                            value={dietFormData.weightKg}
+                            onChange={handleDietFormChange}
+                            className="form-control-premium rounded-4 border-0 shadow-sm fw-700"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="uppercase fw-800 text-slate-400 mb-2" style={{ fontSize: '0.65rem' }}>Activity</Form.Label>
+                          <Form.Select
+                            name="activityLevel"
+                            value={dietFormData.activityLevel}
+                            onChange={handleDietFormChange}
+                            className="form-control-premium rounded-4 border-0 shadow-sm fw-700 text-capitalize"
+                          >
+                            <option value="low">Lazy</option>
+                            <option value="medium">Active</option>
+                            <option value="high">Athletic</option>
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label className="uppercase fw-800 text-slate-400 mb-2" style={{ fontSize: '0.65rem' }}>Health Goal</Form.Label>
+                          <Form.Select
+                            name="goal"
+                            value={dietFormData.goal}
+                            onChange={handleDietFormChange}
+                            className="form-control-premium rounded-4 border-0 shadow-sm fw-700"
+                          >
+                            <option value="weight_loss">Weight Loss</option>
+                            <option value="maintenance">Healthy Weight</option>
+                            <option value="muscle_gain">Build Muscle</option>
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                 </div>
+
+                <Button
+                  type="submit"
+                  className="w-100 py-3 rounded-pill fw-900 shadow-lg btn-gradient-success border-0 scale-hover"
+                  style={{ fontSize: '1rem', letterSpacing: '0.5px' }}
+                  disabled={dietLoading}
+                >
+                  {dietLoading ? (
+                    <div className="d-flex align-items-center justify-content-center">
+                      <Spinner animation="grow" size="sm" className="me-2" />
+                      <span className="text-uppercase small tracking-widest">Generating Routine...</span>
+                    </div>
+                  ) : (
+                    <>CREATE NUTRITION PLAN</>
+                  )}
+                </Button>
+              </Form>
+
+              {/* Diet Results */}
+              {dietResult && (
+                <div className="mt-5 animate-slideUp">
+                  <div className="p-4 rounded-5 border-0 shadow-sm" style={{ backgroundColor: '#ffffff' }}>
+                    <div className="mb-4 text-center">
+                      <div className="bg-success bg-opacity-10 d-inline-flex p-3 rounded-circle mb-3">
+                         <FaUtensils size={24} className="text-success" />
+                      </div>
+                      <h5 className="fw-900 text-slate-900">Recommended Plan</h5>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-4 mb-4 border-start border-4 border-success">
+                       <p className="small fw-700 text-slate-600 mb-0">{dietResult.diet_summary}</p>
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="uppercase fw-800 text-slate-400 mb-3 d-block" style={{ fontSize: '0.65rem' }}>Top Matches from Shop</label>
+                      <div className="d-flex flex-column gap-3">
+                        {dietResult.recommended_products?.map((p, i) => (
+                          <div 
+                            key={i} 
+                            className="premium-product-suggestion shadow-sm cursor-pointer"
+                            onClick={() => handleProductClick(p.product_id)}
+                          >
+                            <div className="pps-icon-wrapper">
+                              <FaShoppingCart size={20} />
+                            </div>
+                            <div className="pps-content">
+                                <h6 className="pps-title">{p.product_name}</h6>
+                                <p className="pps-reason">{p.reason}</p>
+                            </div>
+                            <div className="pps-action">
+                                <span className="pps-badge">Shop Now</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-4 border bg-light small fw-600 text-slate-500">
+                       <div className="fw-800 text-slate-700 mb-1">Feeding Guide:</div>
+                       {dietResult.feeding_guidelines}
+                    </div>
+
+                    {dietResult.disclaimer && (
+                      <div className="mt-4 p-3 bg-warning bg-opacity-5 rounded-4 border-dashed border-warning d-flex align-items-start gap-3">
+                         <FaExclamationTriangle className="text-warning mt-1" size={16} />
+                         <p className="small mb-0 text-warning-emphasis fw-600" style={{ fontSize: '0.75rem' }}>{dietResult.disclaimer}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <style>{`
+        .shadow-premium {
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08) !important;
+        }
+        .btn-gradient-primary {
+          background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+          color: white;
+        }
+        .btn-gradient-success {
+          background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+          color: white;
+        }
+        .bg-gradient-brand-subtle {
+          background: linear-gradient(90deg, #4f46e5 0%, #60a5fa 100%);
+        }
+        .bg-gradient-success-subtle {
+          background: linear-gradient(90deg, #059669 0%, #34d399 100%);
+        }
+        .scale-hover:hover {
+          transform: translateY(-2px) scale(1.01);
+          filter: brightness(1.1);
+        }
+        .form-control-premium {
+          height: 48px;
+          padding: 10px 16px;
+          background-color: white !important;
+        }
+        .form-control-premium:focus {
+          box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1) !important;
+          border-color: rgba(79, 70, 229, 0.2) !important;
+        }
+        .upload-zone:hover {
+          border-color: #4f46e5 !important;
+          background-color: #f1f5f9 !important;
+        }
+        .group:hover .upload-overlay {
+          opacity: 1;
+        }
+        .group:hover .group-hover-translate-up {
+          transform: translateY(-5px);
+        }
+        .group:hover .group-hover-primary {
+          color: #4f46e5 !important;
+          border-color: #4f46e5 !important;
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.8s ease-out;
+        }
+        .animate-slideUp {
+          animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .shadow-hover-sm:hover {
+          box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important;
+          transform: translateY(-2px);
+        }
+        .premium-product-suggestion {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px;
+          background: #ffffff;
+          border-radius: 20px;
+          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          border: 1px solid #f1f5f9;
+        }
+        .premium-product-suggestion:hover {
+          transform: translateX(8px);
+          border-color: #3b82f6;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        }
+        .pps-icon-wrapper {
+          width: 50px;
+          height: 50px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+          color: #4f46e5;
+          border-radius: 12px;
+          flex-shrink: 0;
+          transition: all 0.3s ease;
+        }
+        .premium-product-suggestion:hover .pps-icon-wrapper {
+          background: #4f46e5;
+          color: #ffffff;
+          transform: rotate(-10deg);
+        }
+        .pps-content {
+          flex-grow: 1;
+        }
+        .pps-title {
+          font-weight: 800;
+          color: #1e293b;
+          margin-bottom: 2px;
+          font-size: 0.95rem;
+        }
+        .pps-reason {
+          font-weight: 600;
+          color: #64748b;
+          font-size: 0.75rem;
+          margin-bottom: 0;
+          line-height: 1.3;
+        }
+        .pps-action {
+          flex-shrink: 0;
+        }
+        .pps-badge {
+          background: #f8fafc;
+          color: #4f46e5;
+          font-weight: 800;
+          font-size: 0.7rem;
+          padding: 6px 14px;
+          border-radius: 100px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border: 1px solid #e2e8f0;
+          transition: all 0.3s ease;
+        }
+        .premium-product-suggestion:hover .pps-badge {
+          background: #4f46e5;
+          color: #ffffff;
+          border-color: #4f46e5;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default PetAIFeatures;

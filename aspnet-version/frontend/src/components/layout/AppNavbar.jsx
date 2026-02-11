@@ -1,0 +1,317 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Navbar, Nav, Container, Button, Form, InputGroup, Dropdown, ListGroup, Card, Spinner } from 'react-bootstrap';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import logo from '../../assets/logo.png';
+import { useAuth } from '../../features/auth/AuthContext';
+import { FaSearch, FaUser, FaSignOutAlt, FaCog, FaChevronDown, FaTimes } from 'react-icons/fa';
+import NotificationBell from '../../features/social/components/NotificationBell';
+import followService from '../../services/followService';
+import FollowButton from '../../features/social/components/FollowButton';
+
+const AppNavbar = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef(null);
+
+  // Handle clicking outside the search results
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Debounced search for users
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim().length > 1) {
+        performUserSearch(searchQuery);
+      } else {
+        setSearchResults([]);
+        setShowResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const performUserSearch = async (query) => {
+    try {
+      setIsSearching(true);
+      const data = await followService.searchUsers(query);
+      setSearchResults(data || []);
+      setShowResults(true);
+    } catch (err) {
+      console.error("User search failed", err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setShowResults(false);
+      navigate(`/feed?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  // Don't show the main navbar on the petshop page
+  if (location.pathname.startsWith('/petshop')) {
+    return null;
+  }
+
+  const isUser = user?.role?.toUpperCase() === 'USER';
+  const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
+
+  const navLinks = [
+    { path: '/feed', label: 'Feed', show: isUser },
+    { path: '/my-pets', label: 'Pets', show: isUser },
+    { path: '/connections', label: 'Connections', show: isUser },
+    { path: '/lost-found', label: 'Lost & Found', show: isUser },
+    { path: '/petshop', label: 'Pet Shop', show: isUser },
+  ].filter(link => link.show);
+
+  return (
+    <Navbar expand="lg" className="bg-white border-bottom sticky-top py-2 shadow-sm" style={{ zIndex: 1050 }}>
+      <Container>
+        <Navbar.Brand as={Link} to="/" className="d-flex align-items-center me-0 me-lg-4">
+          <img 
+            src={logo} 
+            alt="PetConnect" 
+            height="110" 
+            className="d-inline-block align-top"
+            style={{ 
+              objectFit: 'contain',
+              transform: 'scale(1.4)',
+              transformOrigin: 'left center'
+            }} 
+          />
+        </Navbar.Brand>
+
+        <div className="d-flex align-items-center gap-2 d-lg-none ms-auto me-2">
+          {isUser && <NotificationBell />}
+        </div>
+
+        <Navbar.Toggle aria-controls="main-navbar" className="border-0 shadow-none ps-0" />
+        
+        <Navbar.Collapse id="main-navbar">
+          {user && (
+            <div className="d-flex flex-column flex-lg-row flex-grow-1 align-items-lg-center mt-3 mt-lg-0">
+              <Nav className="mx-lg-auto align-items-lg-center gap-1 gap-lg-2">
+                {navLinks.map((link) => (
+                  <Nav.Link 
+                    key={link.path}
+                    as={Link} 
+                    to={link.path} 
+                    className={`nav-link-custom px-lg-3 py-2 py-lg-0 fw-700 ${location.pathname === link.path ? 'active' : ''}`}
+                    style={{ 
+                      fontSize: '0.95rem',
+                      color: location.pathname === link.path ? 'var(--brand-primary)' : 'var(--p-slate-500)',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {link.label}
+                  </Nav.Link>
+                ))}
+              </Nav>
+
+              <div 
+                className="ms-lg-3 me-lg-4 my-3 my-lg-0 position-relative" 
+                style={{ flexGrow: 0, flexShrink: 1, minWidth: '220px', maxWidth: '300px' }} 
+                ref={searchRef}
+              >
+                {isUser && (
+                  <>
+                    <Form onSubmit={handleSearch} className="w-100">
+                      <InputGroup className="bg-slate-50 rounded-pill border border-slate-200 px-3 py-1 transition-smooth focus-within-primary shadow-sm" style={{ height: '38px' }}>
+                        <InputGroup.Text className="bg-transparent border-0 text-slate-400 p-0 me-2">
+                          <FaSearch size={14} />
+                        </InputGroup.Text>
+                        <Form.Control
+                          type="search"
+                          placeholder="Search pet parents..."
+                          className="bg-transparent border-0 shadow-none small fw-600 p-0"
+                          style={{ fontSize: '0.85rem' }}
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onFocus={() => searchQuery.length > 1 && setShowResults(true)}
+                        />
+                        {searchQuery && (
+                          <div className="d-flex align-items-center cursor-pointer text-slate-300 hover-text-slate-500" onClick={() => { setSearchQuery(''); setShowResults(false); }}>
+                            <FaTimes size={10} />
+                          </div>
+                        )}
+                      </InputGroup>
+                    </Form>
+                    
+                    {/* Search Results Dropdown */}
+                    {showResults && (
+                      <Card className="position-absolute top-100 start-0 w-100 mt-2 border-0 shadow-premium overflow-hidden z-3" style={{ borderRadius: '16px', minWidth: '280px' }}>
+                        <div className="p-2 border-bottom bg-slate-50 small fw-800 text-slate-500 uppercase tracking-wider px-3" style={{ fontSize: '0.6rem' }}>
+                          Matching Users
+                        </div>
+                        <ListGroup variant="flush" style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                          {isSearching ? (
+                            <div className="p-4 text-center"><Spinner animation="border" size="sm" variant="primary" /></div>
+                          ) : searchResults.length === 0 ? (
+                            <div className="p-4 text-center text-slate-400 small fw-600">No users found</div>
+                          ) : (
+                            searchResults.map(u => (
+                              <ListGroup.Item key={u.id} className="d-flex align-items-center justify-content-between p-3 transition-smooth hover-bg-slate-50 border-0">
+                                <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                  <div className="rounded-circle overflow-hidden shadow-sm border border-slate-100 d-flex align-items-center justify-content-center bg-slate-100 text-primary-pet fw-800" style={{ width: '34px', height: '34px', flexShrink: 0, fontSize: '0.75rem' }}>
+                                    {u.imageUrl ? <img src={u.imageUrl} className="w-100 h-100" style={{ objectFit: 'cover' }} alt="" /> : u.fullName?.charAt(0) || 'U'}
+                                  </div>
+                                  <div className="overflow-hidden">
+                                    <div className="small fw-800 text-slate-900 text-truncate" style={{ maxWidth: '120px' }}>{u.fullName || u.username}</div>
+                                    <div className="text-slate-400 fw-700 truncate-small" style={{ fontSize: '0.65rem' }}>@{u.username}</div>
+                                  </div>
+                                </div>
+                                <FollowButton userId={u.id} onToggle={() => performUserSearch(searchQuery)} />
+                              </ListGroup.Item>
+                            ))
+                          )}
+                          {/* <ListGroup.Item 
+                            action 
+                            className="bg-primary bg-opacity-10 text-primary text-center py-2 border-0 fw-800" 
+                            style={{ fontSize: '0.75rem' }}
+                            onClick={() => { setShowResults(false); navigate(`/feed?search=${searchQuery}`); }}
+                          >
+                            Explore posts for "{searchQuery}"
+                          </ListGroup.Item> */}
+                        </ListGroup>
+                      </Card>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="d-flex align-items-center gap-3">
+                <div className="d-none d-lg-block">
+                  {isUser && <NotificationBell />}
+                </div>
+                
+                <Dropdown align="end">
+                  <Dropdown.Toggle as="div" className="d-flex align-items-center cursor-pointer p-1 rounded-pill hover-bg-slate-50 transition-smooth">
+                    <div className="rounded-circle overflow-hidden shadow-sm border border-slate-200 d-flex align-items-center justify-content-center bg-slate-100" style={{ width: '40px', height: '40px' }}>
+                      {user?.imageUrl || user?.ImageUrl || user?.userProfileImageUrl || user?.UserProfileImageUrl ? (
+                        <img src={user.imageUrl || user.ImageUrl || user.userProfileImageUrl || user.UserProfileImageUrl} className="w-100 h-100" style={{ objectFit: 'cover' }} alt="Profile" />
+                      ) : (
+                        <div className="text-primary-pet fw-900" style={{ fontSize: '0.9rem' }}>
+                          {(user?.fullName?.substring(0, 2) || user?.username?.substring(0, 1) || 'U').toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <FaChevronDown className="ms-2 text-slate-400 d-none d-lg-block" size={10} />
+                  </Dropdown.Toggle>
+
+                  <Dropdown.Menu className="border-0 shadow-lg mt-2 py-2" style={{ borderRadius: '16px', minWidth: '220px' }}>
+                    <div className="px-3 py-3 border-bottom mb-2 bg-slate-50 rounded-top">
+                      <div className="fw-800 text-slate-900 mb-0">{user?.fullName || user?.username}</div>
+                      <div className="text-slate-500 fw-600" style={{ fontSize: '0.7rem' }}>{isAdmin ? 'System Administrator' : 'Personal Account'}</div>
+                    </div>
+                    
+                    {isUser && (
+                      <Dropdown.Item as={Link} to="/dashboard" className="py-2 px-3 transition-smooth hover-bg-slate-50 rounded-2 mx-2 mb-1">
+                        <FaUser size={13} className="me-3 text-slate-400" />
+                        <span className="small fw-700 text-slate-700">My Dashboard</span>
+                      </Dropdown.Item>
+                    )}
+                    
+                    {isAdmin && (
+                       <Dropdown.Item as={Link} to="/admin" className="py-2 px-3 transition-smooth hover-bg-slate-50 rounded-2 mx-2 mb-1">
+                        <FaCog size={13} className="me-3 text-slate-400" />
+                        <span className="small fw-700 text-danger">Admin Management</span>
+                      </Dropdown.Item>
+                    )}
+
+                    <Dropdown.Divider className="mx-2" />
+                    
+                    <Dropdown.Item onClick={handleLogout} className="py-2 px-3 transition-smooth hover-bg-slate-50 text-danger rounded-2 mx-2">
+                      <FaSignOutAlt size={13} className="me-3" />
+                      <span className="small fw-700">Logout Session</span>
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
+              </div>
+            </div>
+          )}
+
+          {!user && (
+            <Nav className="ms-auto align-items-lg-center">
+              <Nav.Link 
+                as={Link} 
+                to="/login" 
+                className="px-4 fw-800 text-slate-600 hover-text-primary transition-smooth"
+              >
+                Log In
+              </Nav.Link>
+              <Button 
+                as={Link} 
+                to="/register" 
+                className="btn-primary-pet ms-lg-3 px-4 py-2 rounded-pill shadow-sm fw-800"
+              >
+                Get Started
+              </Button>
+            </Nav>
+          )}
+        </Navbar.Collapse>
+      </Container>
+      
+      <style>{`
+        .nav-link-custom {
+            position: relative;
+            transition: all 0.2s ease;
+            outline: none !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+        .nav-link-custom.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 4px;
+            background: var(--brand-primary);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        @media (max-width: 991.98px) {
+            .nav-link-custom.active::after {
+                display: none;
+            }
+            .nav-link-custom.active {
+                background: rgba(79, 70, 229, 0.08);
+                border-radius: 8px;
+                color: var(--brand-primary) !important;
+            }
+        }
+        .focus-within-primary:focus-within {
+          border-color: var(--brand-primary) !important;
+          box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+        }
+        .shadow-premium {
+          box-shadow: 0 15px 40px rgba(0,0,0,0.12) !important;
+        }
+      `}</style>
+    </Navbar>
+  );
+};
+
+export default AppNavbar;
